@@ -1,1 +1,45 @@
+name: Compile ESP32-CAM Binary
 
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+    
+    - name: Install Arduino CLI
+      run: |
+        curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh | sh
+        sudo mv ./arduino-cli /usr/local/bin/
+    
+    - name: Install ESP32 board
+      run: |
+        arduino-cli config init
+        arduino-cli core install esp32:esp32
+    
+    - name: Create sketch directory
+      run: |
+        mkdir -p ./sketch
+        cp Led_teste ./sketch/Led_teste.ino
+    
+    - name: Compile for ESP32-CAM
+      run: |
+        arduino-cli compile --fqbn esp32:esp32:esp32cam --output-dir ./build ./sketch
+    
+    - name: Upload to GitHub Releases
+      uses: softprops/action-gh-release@v1
+      with:
+        files: build/Led_teste.ino.bin
+        tag_name: build-${{ github.run_number }}
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
